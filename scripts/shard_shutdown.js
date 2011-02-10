@@ -2,7 +2,7 @@
 
 // For now, we have to be in the root directory of the project, could fix 
 // but would have to touch the shell code
-load( "../jstests/shard_setup.js" )
+load( "jslib/shard_setup.js" )
 
 var ss = new ShardedSetup( { mongos : 1, shards : [ 1, 2 ] } )
 
