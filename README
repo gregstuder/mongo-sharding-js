@@ -1,0 +1,56 @@
+Javascript utility to invoke (remote) sharding setups, dynamically modify.
+
+The overall structure to the project is:
+
+shard_setup.js -> Service and ShardedSetup objects, allows you to transparently set up a sharded mongodb configuration with configurable:
+	- mongos frontends
+	- named shards as replica sets
+	- replicas per shard
+	- host types and options (local and remote via ssh)
+		- ssh works(ed), local is the most up-to-date at the second
+	- service layouts (i.e. mapping of mongo services to hosts)
+	
+shard_setup_local.js -> Local host plugin
+shard_setup_ssh.js -> SSH host plugin
+
+Right now the host connectivity is a bit rough-and-ready, as the mongo shell makes it hard to cleanly launch the processes by using various shell utilities (and the mongo processes themselves do not record much useful local process info).
+
+The idea is to launch a sharded configuration by invoking:
+
+2 shards, default of three replica nodes per shard
+> var ss = new ShardedSetup({ mongos : 1, shards : 2 })
+
+2 shards, 1, 2, and 3 replica nodes per shard 
+> var ss = new ShardedSetup({ mongos : 1, shards : [1, 2, 3] })
+
+3 shards, 1, 2, and 3 replica nodes per shard (shard names a, b, c)
+> var ss = new ShardedSetup({ mongos : 1, shards : { a : 1, b : 2, c : 3} })
+
+3 shards, 1, 2, and 3 replica nodes per shard
+> var ss = new ShardedSetup({ mongos : 1, shards : 3, replicas : [ 1, 2, 3 ] })
+
+3 shards, 1, 2, and 3 replica nodes per shard, arbiter as one node
+> var ss = new ShardedSetup({ mongos : 2, shards : 3, replicas : [ 1, 2, [ null, null, "$arbiter" ] ] })
+
+3 shards, 1, 2, and 3 replica nodes per shard, arbiter as one node, named mongoses
+> var ss = new ShardedSetup({ mongos : ["alpha", "beta", "gamma"], shards : 3, replicas : [ 1, 2, [ null, null, "$arbiter" ] ] })
+
+3 shards, 1, 2, and 3 replica nodes per shard, arbiter as one node, named mongoses, two hosts
+> var ss = new ShardedSetup({ mongos : ["alpha", "beta", "gamma"], shards : 3, replicas : [ 1, 2, [ null, null, "$arbiter" ] ], hosts : [ "ssh://user@host.com", "ssh://user2@host.com" ] })
+
+3 shards, 1, 2, and 3 replica nodes per shard, arbiter as one node, named mongoses, two hosts, random layout (places services on hosts)
+> var ss = new ShardedSetup({ mongos : ["alpha", "beta", "gamma"], shards : 3, replicas : [ 1, 2, [ null, null, "$arbiter" ] ], hosts : [ "ssh://user@host.com", "ssh://user2@host.com" ], layout : "default" })
+
+Only have a default layout for now, basically assigns services to hosts in-order with wrapping.  
+
+ss.init() starts the services on hosts, assigns some useful shortcuts for connections to each host
+
+ss.$active() = connection to first active mongos
+ss.$mongos$[name|#] = connection to mongos
+ss.$shard$[name|#] = connection to shard replica set
+ss.$replica$[name|#]$[replica #] = connection to replica in set (slaveok'd)
+
+ss.end() stops all services
+
+
+
